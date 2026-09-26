@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservar cita | Clínica Rodríguez</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+</head>
+
+<body class="bg-light">
+    <header class="navbar bg-body-secondary shadow-lg p-1 mb-1 rounded">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">
+                <img src="imagenes/logo.png" alt="Clínica Rodríguez" width="250" height="100">
+            </a>
+            <span class="text-dark"><i class="bi bi-telephone-fill me-2"></i>986151340</span>
+        </div>
+    </header>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary shadow-sm mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">Clínica Rodríguez</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu"
+                aria-controls="menu" aria-expanded="false" aria-label="Abrir menú">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="menu">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" href="index.html">INICIO</a></li>
+                    <li class="nav-item"><a class="nav-link" href="clinica.html">LA CLÍNICA</a></li>
+                    <li class="nav-item"><a class="nav-link" href="doctores.html">DOCTORES</a></li>
+                    <li class="nav-item"><a class="nav-link" href="contactanos.html">CONTÁCTANOS</a></li>
+                    <li class="nav-item bg-primary rounded"><a class="nav-link text-light" aria-current="page"
+                            href="reservar.html">Reservar Una Cita</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-9 col-lg-7">
+                <div class="bg-white rounded shadow-sm p-4 p-md-5">
+                    <h1 class="h3 mb-2">Reserva tu cita</h1>
+                    <p class="text-muted mb-4">Completa tus datos y selecciona un doctor y horario.</p>
+                    <div id="mensaje" class="alert d-none" role="status" aria-live="polite"></div>
+                    <form id="formulario-cita">
+                        <div class="mb-3">
+                            <label for="paciente_nombre" class="form-label">Nombre del paciente</label>
+                            <input id="paciente_nombre" name="paciente_nombre" class="form-control" required
+                                maxlength="120">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="paciente_email" class="form-label">Correo electrónico</label>
+                                <input id="paciente_email" name="paciente_email" type="email" class="form-control"
+                                    required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="paciente_telefono" class="form-label">Teléfono</label>
+                                <input id="paciente_telefono" name="paciente_telefono" type="tel" class="form-control"
+                                    required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="doctor_id" class="form-label">Doctor</label>
+                            <select id="doctor_id" name="doctor_id" class="form-select" required disabled>
+                                <option value="">Cargando doctores...</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="fecha" class="form-label">Fecha</label>
+                                <input id="fecha" name="fecha" type="date" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="hora" class="form-label">Hora</label>
+                                <input id="hora" name="hora" type="time" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="motivo" class="form-label">Motivo de la consulta</label>
+                            <textarea id="motivo" name="motivo" rows="3" class="form-control" required></textarea>
+                        </div>
+                        <button id="enviar" type="submit" class="btn btn-primary w-100" disabled>Reservar cita</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API = 'https://clinica-dental-backend-ammk.onrender.com';
+        const formulario = document.querySelector('#formulario-cita');
+        const selector = document.querySelector('#doctor_id');
+        const boton = document.querySelector('#enviar');
+        const mensaje = document.querySelector('#mensaje');
+        const fecha = document.querySelector('#fecha');
+        const hoy = new Date();
+        fecha.min = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+
+        function mostrarMensaje(texto, tipo) {
+            mensaje.textContent = texto;
+            mensaje.className = `alert alert-${tipo}`;
+        }
+
+        async function cargarDoctores() {
+            try {
+                const respuesta = await fetch(`${API}/api/doctores`);
+                if (!respuesta.ok) throw new Error();
+                const doctores = await respuesta.json();
+                selector.replaceChildren(new Option('-- Elige un doctor --', ''));
+                for (const doctor of doctores) {
+                    selector.add(new Option(`${doctor.nombre} - ${doctor.especialidad}`, doctor.id));
+                }
+                selector.disabled = doctores.length === 0;
+                boton.disabled = doctores.length === 0;
+                if (doctores.length === 0) mostrarMensaje('No hay doctores disponibles para reservar.', 'warning');
+            } catch {
+                selector.replaceChildren(new Option('No se pudieron cargar los doctores', ''));
+                mostrarMensaje('No se pudo conectar con la clínica. Inténtalo más tarde.', 'danger');
+            }
+        }
+
+        formulario.addEventListener('submit', async (evento) => {
+            evento.preventDefault();
+            if (!formulario.reportValidity()) return;
+            boton.disabled = true;
+            mensaje.className = 'alert d-none';
+            const datos = Object.fromEntries(new FormData(formulario).entries());
+            try {
+                const respuesta = await fetch(`${API}/api/reservas`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datos)
+                });
+                const resultado = await respuesta.json();
+                mostrarMensaje(resultado.mensaje || 'No se pudo registrar la cita.', respuesta.ok ? 'success' : 'danger');
+                if (respuesta.ok) {
+                    formulario.reset();
+                    fecha.min = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+                }
+            } catch {
+                mostrarMensaje('No se pudo conectar con la clínica. Inténtalo más tarde.', 'danger');
+            } finally {
+                boton.disabled = false;
+            }
+        });
+        cargarDoctores();
+    </script>
+</body>
+
+</html>
